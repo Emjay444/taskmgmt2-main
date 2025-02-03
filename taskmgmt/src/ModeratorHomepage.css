@@ -1,0 +1,60 @@
+.moderator-homepage-container {
+  width: 100vw;
+  height: 100vh;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 10px 15px;
+  cursor: pointer;
+}
+
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.task-card {
+  background-color: #ffe1ca;
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.task-title {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.confirm-task-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  margin-top: 10px;
+  border-radius: 5px;
+}
+
+.confirm-task-btn:hover {
+  background-color: #218838;
+}
+
+.names{
+  display: flex;
+  flex-direction: row;
+  color: #4e4e4e;
+}
+
+.namep{
+  margin: 0;
+}

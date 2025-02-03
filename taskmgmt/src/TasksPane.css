@@ -1,0 +1,77 @@
+/* Container for the entire Tasks pane */
+.tasks-pane {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Header with title and button */
+.tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tasks-header h2 {
+  font-size: 24px;
+  color: #333;
+}
+
+.add-task-button {
+  background-color: #4caf50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.add-task-button:hover {
+  background-color: #45a049;
+}
+
+/* Table for displaying tasks */
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.task-table th,
+.task-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.task-table th {
+  background-color: #f1f1f1;
+  color: #555;
+}
+
+.task-table tr:hover {
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.task-table td {
+  font-size: 16px;
+  color: #666;
+}
+
+/* Modal styling */
+.add-task-modal,
+.edit-task-modal {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-group label {
+  color: #ddd;
+}

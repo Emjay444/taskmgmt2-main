@@ -1,0 +1,112 @@
+/* Base theme settings */
+:root {
+  --primary-bg: #1f1f1f; /* Dark background */
+  --primary-text: #ffffff; /* Light text */
+  --secondary-bg: #2c2c2c; /* Slightly lighter background */
+  --button-bg: #00bcd4; /* Teal for buttons */
+  --button-text: #ffffff; /* Button text color */
+  --input-bg: #444444; /* Dark input background */
+  --input-border: #666666; /* Border color for inputs */
+  --input-text: #ffffff; /* Text color inside inputs */
+  --hover-bg: #0097a7; /* Hover color for buttons */
+}
+
+/* General Styles */
+body {
+  font-family: "Arial", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--primary-bg);
+  color: var(--primary-text);
+  transition: background-color 0.3s, color 0.3s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Login form container */
+.login-container h2 {
+  font-size: 2rem;
+  text-align: center;
+  color: var(--primary-text);
+  margin-bottom: 20px;
+}
+
+/* Form styling */
+.login-form {
+  background-color: var(--secondary-bg);
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 380px;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Styling for inputs to make them behave like buttons */
+.login-input {
+  width: 100%;
+  padding: 14px;
+  margin: 10px 0;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.login-input:focus {
+  border-color: var(--button-bg);
+  outline: none;
+}
+
+/* Button styling */
+.login-button {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--button-bg);
+  border: none;
+  color: var(--button-text);
+  font-size: 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-button:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Link styles */
+.login-link p {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 1rem;
+}
+
+.login-link a {
+  color: var(--button-bg);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 500px) {
+  .login-form {
+    padding: 20px;
+  }
+
+  .login-button {
+    font-size: 1rem;
+  }
+}

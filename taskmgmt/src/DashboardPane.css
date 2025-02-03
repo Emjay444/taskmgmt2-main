@@ -1,0 +1,112 @@
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-stats {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.stat-card {
+  flex: 1;
+  background-color: #f9f9f9;
+  color: #fff;
+  padding: 20px;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.header {
+  font-size: 2.3em;
+  color: #333;
+  font-weight: 800;
+  margin: 0;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  background-color: #dadada;
+}
+
+.stat-card h3 {
+  font-size: 4em;
+  color: #333;
+  margin: 0;
+}
+
+.stat-card p {
+  font-size: 18px;
+  color: #555;
+  margin: 5px 0 0;
+  font-weight: 500;
+  text-align: end; /* Aligns the text to the end (right) */
+}
+
+.dashboard-pane {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.dashboard-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.task-table thead {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.task-table th,
+.task-table td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.task-table tbody tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.task-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.task-table th {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333333;
+}
+
+.task-table td {
+  font-size: 14px;
+  color: #555;
+}
