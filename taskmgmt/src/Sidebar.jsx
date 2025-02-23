@@ -24,6 +24,12 @@ function Sidebar({ activePane, setActivePane, handleLogout }) {
         >
           Accounts
         </li>
+        <li
+          className={activePane === "adminlogs" ? "active" : ""}
+          onClick={() => setActivePane("adminlogs")}
+        >
+          Admin Logs
+        </li>
       </ul>
       {/* Logout Button */}
       <button className="logout-button" onClick={handleLogout}>
