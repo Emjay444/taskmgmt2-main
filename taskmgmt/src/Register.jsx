@@ -20,15 +20,20 @@ function Register() {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/adminregister",
+        "http://localhost:5000/api/register",
         formData
       );
-      alert(response.data.message);
+      alert(response.data.message); // Success message
     } catch (error) {
-      console.error(error);
-      alert("Registration failed!");
+      if (error.response && error.response.status === 400) {
+        // Email already exists
+        alert(error.response.data.message);
+      } else {
+        alert("Registration failed! Please try again.");
+      }
     }
   };
+  
 
   return (
     <div className="register-container">

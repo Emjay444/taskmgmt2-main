@@ -3,9 +3,9 @@ import Sidebar from "./Sidebar";
 import DashboardPane from "./DashboardPane";
 import TasksPane from "./TasksPane";
 import AccountsPane from "./AccountsPane";
+import AdminLogs from "./AdminLogs"; // Import AdminLogs
 import "./AdminDashboard.css";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom"; // Use this for programmatic navigation
+import { useNavigate } from "react-router-dom"; // Use this for navigation
 
 function AdminDashboard() {
   const [activePane, setActivePane] = useState("dashboard");
@@ -19,6 +19,8 @@ function AdminDashboard() {
         return <TasksPane />;
       case "accounts":
         return <AccountsPane />;
+      case "adminlogs":
+        return <AdminLogs />; // Include AdminLogs here
       default:
         return <DashboardPane />;
     }
@@ -27,7 +29,6 @@ function AdminDashboard() {
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
-
     navigate("/login-admin");
   };
 

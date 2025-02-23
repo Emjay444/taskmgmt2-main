@@ -83,7 +83,7 @@ function ModeratorHomepage() {
               {tasks.map((task) => (
                 <div key={task.id} className="task-card">
                   <div className="names">
-                  <p className="task-title">{`For: ${task.first_name} ${task.last_name}`}</p>
+                  <p className="task-title">{`For: ${task.firstName} ${task.lastName  }`}</p>
                   
                   </div>
 
