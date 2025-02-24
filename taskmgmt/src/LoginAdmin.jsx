@@ -49,7 +49,9 @@ function LoginAdmin() {
       );
 
       if (response.data.message === "Login successful") {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+        const adminInfo = response.data.user;
+        localStorage.setItem("adminInfo", JSON.stringify(adminInfo));
+        sessionStorage.setItem("adminInfo", JSON.stringify(adminInfo));
         localStorage.removeItem("failedAttempts"); // Reset failed attempts on success
         navigate("/admin-dashboard");
       } else {
@@ -58,6 +60,7 @@ function LoginAdmin() {
     } catch (error) {
       console.error(error);
       handleFailedAttempt();
+      alert(error.response?.data?.message || "Login failed");
     }
   };
 

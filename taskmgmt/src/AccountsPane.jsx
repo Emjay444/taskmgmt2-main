@@ -16,7 +16,14 @@ function AccountsPane() {
     phoneNumber: "",
   });
 
+  // Get admin info from session storage
+  const adminInfo = JSON.parse(sessionStorage.getItem("adminInfo"));
+
   useEffect(() => {
+    if (!adminInfo) {
+      console.error("No admin information found");
+      return;
+    }
     fetchUsers();
     fetchTaskStats();
   }, []);
@@ -55,36 +62,102 @@ function AccountsPane() {
   };
 
   const handleAddUser = () => {
+    if (!adminInfo) {
+      console.error("No admin information found");
+      return;
+    }
+
+    console.log("Admin info for logging:", adminInfo);
+
+    const userDataWithAdmin = {
+      ...newUser,
+      adminId: adminInfo.id,
+      adminName: `${adminInfo.first_name} ${adminInfo.last_name}`,
+    };
+
+    console.log("Sending user data with admin info:", userDataWithAdmin);
+
     axios
-      .post("http://localhost:5000/api/register", newUser)
-      .then(() => {
+      .post("http://localhost:5000/api/register", userDataWithAdmin)
+      .then((response) => {
+        console.log("User registration response:", response.data);
         fetchUsers();
         setShowAddModal(false);
+        setNewUser({
+          email: "",
+          password: "",
+          firstName: "",
+          lastName: "",
+          phoneNumber: "",
+        });
       })
-      .catch((error) => console.error("Error adding user", error));
+      .catch((error) => {
+        console.error("Error adding user:", error);
+        alert(error.response?.data?.message || "Error adding user");
+      });
   };
 
   const handleUpdateUser = () => {
+    if (!adminInfo) {
+      console.error("No admin information found");
+      return;
+    }
+
+    const updateData = {
+      ...selectedUser,
+      adminId: adminInfo.id,
+      adminName: `${adminInfo.first_name} ${adminInfo.last_name}`,
+    };
+
+    console.log("Sending update data with admin info:", updateData);
+
     axios
       .put(
         `http://localhost:5000/api/update-user/${selectedUser.id}`,
-        selectedUser
+        updateData
       )
-      .then(() => {
+      .then((response) => {
+        console.log("User update response:", response.data);
         fetchUsers();
         setShowEditModal(false);
       })
-      .catch((error) => console.error("Error updating user", error));
+      .catch((error) => {
+        console.error("Error updating user:", error);
+        alert(error.response?.data?.message || "Error updating user");
+      });
   };
 
   const handleDeleteUser = () => {
+    if (!adminInfo) {
+      console.error("No admin information found");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this user?")) {
+      return;
+    }
+
+    console.log("Sending delete request with admin info:", {
+      adminId: adminInfo.id,
+      adminName: `${adminInfo.first_name} ${adminInfo.last_name}`,
+    });
+
     axios
-      .delete(`http://localhost:5000/api/delete-user/${selectedUser.id}`)
-      .then(() => {
+      .delete(`http://localhost:5000/api/delete-user/${selectedUser.id}`, {
+        data: {
+          adminId: adminInfo.id,
+          adminName: `${adminInfo.first_name} ${adminInfo.last_name}`,
+        },
+      })
+      .then((response) => {
+        console.log("User deletion response:", response.data);
         fetchUsers();
         setShowEditModal(false);
       })
-      .catch((error) => console.error("Error deleting user", error));
+      .catch((error) => {
+        console.error("Error deleting user:", error);
+        alert(error.response?.data?.message || "Error deleting user");
+      });
   };
 
   const handleOpenEditModal = (user) => {
@@ -111,7 +184,6 @@ function AccountsPane() {
             <th>Phone Number</th>
             <th>Role</th>
             <th>Tasks Completed</th>
-            <th>Created At</th>
           </tr>
         </thead>
         <tbody>
@@ -127,7 +199,6 @@ function AccountsPane() {
                 <td>
                   {stats.completed}/{stats.total}
                 </td>
-                <td>{new Date(user.created_at).toLocaleDateString()}</td>
               </tr>
             );
           })}

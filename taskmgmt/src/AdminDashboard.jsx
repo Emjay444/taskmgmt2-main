@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import DashboardPane from "./DashboardPane";
 import TasksPane from "./TasksPane";
@@ -10,6 +10,14 @@ import { useNavigate } from "react-router-dom"; // Use this for navigation
 function AdminDashboard() {
   const [activePane, setActivePane] = useState("dashboard");
   const navigate = useNavigate(); // Initialize navigate function
+
+  // Check for admin session on component mount
+  useEffect(() => {
+    const adminInfo = sessionStorage.getItem("adminInfo");
+    if (!adminInfo) {
+      navigate("/login-admin");
+    }
+  }, [navigate]);
 
   const renderPane = () => {
     switch (activePane) {
@@ -27,8 +35,11 @@ function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+    // Clear both localStorage and sessionStorage
+    localStorage.removeItem("adminInfo");
+    sessionStorage.removeItem("adminInfo");
+    localStorage.removeItem("failedAttempts");
+    localStorage.removeItem("cooldownTimestamp");
     navigate("/login-admin");
   };
 

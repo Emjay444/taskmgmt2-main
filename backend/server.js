@@ -18,6 +18,7 @@ const db = mysql.createConnection({
   user: "root",
   password: "",
   database: "task_management",
+  port: 3307,
 });
 
 db.connect((err) => {
@@ -25,6 +26,26 @@ db.connect((err) => {
     console.error("Error connecting to the database:", err);
   } else {
     console.log("Connected to the database");
+
+    // Create admin_logs table if it doesn't exist
+    const createAdminLogsTable = `
+    CREATE TABLE IF NOT EXISTS admin_logs (
+      admin_id VARCHAR(32) NOT NULL,
+      admin_name TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target_account TEXT,
+      details TEXT,
+      timestamp TEXT NOT NULL,
+      PRIMARY KEY (admin_id, timestamp(50))
+    )`;
+
+    db.query(createAdminLogsTable, (err) => {
+      if (err) {
+        console.error("Error creating admin_logs table:", err);
+      } else {
+        console.log("Admin logs table checked/created successfully");
+      }
+    });
   }
 });
 
@@ -34,7 +55,15 @@ const generateRandomId = () => {
 };
 
 app.post("/api/register", async (req, res) => {
-  const { email, password, firstName, lastName, phoneNumber } = req.body;
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    phoneNumber,
+    adminId,
+    adminName,
+  } = req.body;
 
   // Encrypt the incoming email for storage
   const encEmail = encrypt(email);
@@ -56,59 +85,102 @@ app.post("/api/register", async (req, res) => {
     }
 
     // Hash the password before storing it
-    const hashedPassword = await bcrypt.hash(password, 10); // Salt rounds set to 10
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const encFirstName = encrypt(firstName);
     const encLastName = encrypt(lastName);
     const encPhoneNumber = encrypt(phoneNumber);
     const encUser = encrypt("user");
 
-    const id = generateRandomId(); // Generate random ID
+    const id = generateRandomId();
     const insertQuery =
       "INSERT INTO user_accounts (id, email, password, first_name, last_name, phone_number, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     db.query(
       insertQuery,
-      [id, encEmail, hashedPassword, encFirstName, encLastName, encPhoneNumber, encUser],
+      [
+        id,
+        encEmail,
+        hashedPassword,
+        encFirstName,
+        encLastName,
+        encPhoneNumber,
+        encUser,
+      ],
       (err) => {
         if (err) {
           console.error(err);
           return res.status(500).send({ message: "Error registering user" });
-        } else {
-          return res.status(200).send({ message: "User registered successfully" });
         }
+
+        // Log the admin action if adminId and adminName are provided
+        if (adminId && adminName) {
+          logAdminAction(
+            adminId,
+            adminName,
+            "create",
+            email,
+            `Created new user account for ${firstName} ${lastName}`
+          );
+        }
+
+        return res
+          .status(200)
+          .send({ message: "User registered successfully" });
       }
     );
   });
 });
 
 app.post("/api/adminregister", async (req, res) => {
-  const { email, password, firstName, lastName, phoneNumber } = req.body;
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    phoneNumber,
+    creatorAdminId,
+    creatorAdminName,
+  } = req.body;
 
-  // Hash the password before storing it
-  const hashedPassword = await bcrypt.hash(password, 10); // Salt rounds set to 10
-const encEmail = encrypt(email);
-const encFirstName = encrypt(firstName);
-const encLastName = encrypt(lastName);
-const encPhoneNumber = encrypt(phoneNumber);
-const encUser = encrypt("user");
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const encEmail = encrypt(email);
+    const encFirstName = encrypt(firstName);
+    const encLastName = encrypt(lastName);
+    const encPhoneNumber = encrypt(phoneNumber);
+    const id = generateRandomId();
 
-  const id = generateRandomId(); // Generate random id
-  const query =
-    "INSERT INTO admin_accounts (id, email, password, first_name, last_name, phone_number) VALUES (?, ?, ?, ?, ?, ?)";
+    const query =
+      "INSERT INTO admin_accounts (id, email, password, first_name, last_name, phone_number) VALUES (?, ?, ?, ?, ?, ?)";
 
-  db.query(
-    query,
-    [id, encEmail, hashedPassword, encFirstName, encLastName, encPhoneNumber],
-    (err) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send({ message: "Error registering user" });
-      } else {
-        res.status(200).send({ message: "User registered successfully" });
+    db.query(
+      query,
+      [id, encEmail, hashedPassword, encFirstName, encLastName, encPhoneNumber],
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send({ message: "Error registering admin" });
+        }
+
+        // Log the admin action if a creator admin is specified
+        if (creatorAdminId && creatorAdminName) {
+          logAdminAction(
+            creatorAdminId,
+            creatorAdminName,
+            "create",
+            email,
+            `Created new admin account for ${firstName} ${lastName}`
+          );
+        }
+
+        res.status(200).send({ message: "Admin registered successfully" });
       }
-    }
-  );
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Error registering admin" });
+  }
 });
 
 app.post("/api/login", (req, res) => {
@@ -156,7 +228,7 @@ app.post("/api/login", (req, res) => {
         first_name: decryptedFirstName,
         last_name: decryptedLastName,
         phone_number: decryptedPhoneNumber,
-        role: decryptedRole
+        role: decryptedRole,
       },
     });
   });
@@ -205,10 +277,10 @@ app.post("/api/login-admin", (req, res) => {
         email: decryptedEmail,
         first_name: decryptedFirstName,
         last_name: decryptedLastName,
-        phone_number: decryptedPhoneNumber
+        phone_number: decryptedPhoneNumber,
       },
     });
-  }); 
+  });
 });
 
 // 🔹 Assign Task - Encrypt before inserting
@@ -360,7 +432,6 @@ app.get("/api/get-users", (req, res) => {
   });
 });
 
-
 app.put("/api/update-task/:task_id", (req, res) => {
   const { task_id } = req.params;
   const {
@@ -400,7 +471,6 @@ app.put("/api/update-task/:task_id", (req, res) => {
   );
 });
 
-
 app.delete("/api/delete-task/:task_id", (req, res) => {
   const { task_id } = req.params;
   const query = "DELETE FROM tasks WHERE id = ?";
@@ -415,79 +485,155 @@ app.delete("/api/delete-task/:task_id", (req, res) => {
 });
 
 app.put("/api/update-user/:id", (req, res) => {
-  const { email, first_name, last_name, phone_number, role, password } =
-    req.body;
+  const {
+    email,
+    first_name,
+    last_name,
+    phone_number,
+    role,
+    password,
+    adminId,
+    adminName,
+  } = req.body;
   const userId = req.params.id;
 
-  if (password) {
-    bcrypt.hash(password, 10, (err, hash) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send({ message: "Error hashing password" });
-      }
+  // Get the original user data for logging
+  const getUserQuery =
+    "SELECT email, first_name, last_name FROM user_accounts WHERE id = ?";
+  db.query(getUserQuery, [userId], async (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send({ message: "Error fetching user details" });
+    }
 
-      const query =
-        "UPDATE user_accounts SET email = ?, first_name = ?, last_name = ?, phone_number = ?, role = ?, password = ? WHERE id = ?";
+    const originalUser = results[0];
+    const updateUser = async () => {
+      if (password) {
+        const hash = await bcrypt.hash(password, 10);
+        const query =
+          "UPDATE user_accounts SET email = ?, first_name = ?, last_name = ?, phone_number = ?, role = ?, password = ? WHERE id = ?";
+        db.query(
+          query,
+          [
+            encrypt(email),
+            encrypt(first_name),
+            encrypt(last_name),
+            encrypt(phone_number),
+            encrypt(role),
+            hash,
+            userId,
+          ],
+          (err) => {
+            if (err) {
+              console.error(err);
+              return res.status(500).send({ message: "Error updating user" });
+            }
 
-      db.query(
-        query,
-        [
-          encrypt(email),
-          encrypt(first_name),
-          encrypt(last_name),
-          encrypt(phone_number),
-          encrypt(role),
-          hash,
-          userId,
-        ],
-        (err) => {
-          if (err) {
-            console.error(err);
-            res.status(500).send({ message: "Error updating user" });
-          } else {
+            // Log the admin action
+            logAdminAction(
+              adminId,
+              adminName,
+              "update",
+              decrypt(originalUser.email),
+              `Updated user account: ${decrypt(
+                originalUser.first_name
+              )} ${decrypt(
+                originalUser.last_name
+              )} (Email changed from ${decrypt(
+                originalUser.email
+              )} to ${email})`
+            );
+
             res.status(200).send({ message: "User updated successfully" });
           }
-        }
-      );
-    });
-  } else {
-    const query =
-      "UPDATE user_accounts SET email = ?, first_name = ?, last_name = ?, phone_number = ?, role = ? WHERE id = ?";
+        );
+      } else {
+        const query =
+          "UPDATE user_accounts SET email = ?, first_name = ?, last_name = ?, phone_number = ?, role = ? WHERE id = ?";
+        db.query(
+          query,
+          [
+            encrypt(email),
+            encrypt(first_name),
+            encrypt(last_name),
+            encrypt(phone_number),
+            encrypt(role),
+            userId,
+          ],
+          (err) => {
+            if (err) {
+              console.error(err);
+              return res.status(500).send({ message: "Error updating user" });
+            }
 
-    db.query(
-      query,
-      [
-        encrypt(email),
-        encrypt(first_name),
-        encrypt(last_name),
-        encrypt(phone_number),
-        encrypt(role),
-        userId,
-      ],
-      (err) => {
-        if (err) {
-          console.error(err);
-          res.status(500).send({ message: "Error updating user" });
-        } else {
-          res.status(200).send({ message: "User updated successfully" });
-        }
+            // Log the admin action
+            logAdminAction(
+              adminId,
+              adminName,
+              "update",
+              decrypt(originalUser.email),
+              `Updated user account: ${decrypt(
+                originalUser.first_name
+              )} ${decrypt(
+                originalUser.last_name
+              )} (Email changed from ${decrypt(
+                originalUser.email
+              )} to ${email})`
+            );
+
+            res.status(200).send({ message: "User updated successfully" });
+          }
+        );
       }
-    );
-  }
+    };
+
+    updateUser().catch((err) => {
+      console.error(err);
+      res.status(500).send({ message: "Error updating user" });
+    });
+  });
 });
 
 // Delete account endpoint
 app.delete("/api/delete-user/:id", (req, res) => {
   const userId = req.params.id;
-  const query = "DELETE FROM user_accounts WHERE id = ?";
+  const { adminId, adminName } = req.body;
 
-  db.query(query, [userId], (err) => {
+  // Get user details before deletion for logging
+  const getUserQuery =
+    "SELECT email, first_name, last_name FROM user_accounts WHERE id = ?";
+  db.query(getUserQuery, [userId], (err, results) => {
     if (err) {
       console.error(err);
-      res.status(500).send({ message: "Error deleting user" });
-    } else {
-      res.status(200).send({ message: "User deleted successfully" });
+      return res.status(500).send({ message: "Error fetching user details" });
     }
+
+    if (results.length === 0) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    const user = results[0];
+    const deleteQuery = "DELETE FROM user_accounts WHERE id = ?";
+
+    db.query(deleteQuery, [userId], (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send({ message: "Error deleting user" });
+      }
+
+      // Log the admin action
+      logAdminAction(
+        adminId,
+        adminName,
+        "delete",
+        decrypt(user.email),
+        `Deleted user account: ${decrypt(user.first_name)} ${decrypt(
+          user.last_name
+        )}`
+      );
+
+      res.status(200).send({ message: "User deleted successfully" });
+    });
   });
 });
 
@@ -496,10 +642,11 @@ app.delete("/api/delete-user/:id", (req, res) => {
 // Create Admin Log Entry
 app.post("/api/admin-logs", (req, res) => {
   const { admin_id, activity } = req.body;
-  const logId = generateRandomId(); 
-  const timestamp = new Date().toISOString(); 
+  const logId = generateRandomId();
+  const timestamp = new Date().toISOString();
 
-  const query = "INSERT INTO admin_logs (id, admin_id, activity, timestamp) VALUES (?, ?, ?, ?)";
+  const query =
+    "INSERT INTO admin_logs (id, admin_id, activity, timestamp) VALUES (?, ?, ?, ?)";
 
   db.query(query, [logId, admin_id, encrypt(activity), timestamp], (err) => {
     if (err) {
@@ -589,7 +736,6 @@ app.get("/api/get-to-review-tasks", (req, res) => {
   });
 });
 
-
 // Update task status
 app.put("/api/update-task-status", (req, res) => {
   const { taskId, status } = req.body;
@@ -646,12 +792,247 @@ app.get("/api/get-task-stats", (req, res) => {
         userId: row.user_id,
         firstName: row.first_name,
         lastName: row.last_name,
-        completed: decryptedStatus === "Completed" ? row.completed_tasks || 0 : 0,
+        completed:
+          decryptedStatus === "Completed" ? row.completed_tasks || 0 : 0,
         total: row.total_tasks || 0,
       };
     });
 
     res.status(200).send(taskStats);
+  });
+});
+
+// Update the logAdminAction function to encrypt sensitive data
+const logAdminAction = (adminId, adminName, action, targetAccount, details) => {
+  console.log("Attempting to log admin action:", {
+    adminId,
+    adminName,
+    action,
+    targetAccount,
+    details,
+  });
+
+  const query = `
+    INSERT INTO admin_logs (admin_id, admin_name, action, target_account, details, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?);
+  `;
+
+  // Encrypt all sensitive data
+  const encryptedName = encrypt(adminName);
+  const encryptedAction = encrypt(action);
+  const encryptedTarget = targetAccount ? encrypt(targetAccount) : null;
+  const encryptedDetails = details ? encrypt(details) : null;
+  const encryptedTimestamp = encrypt(new Date().toISOString());
+
+  const values = [
+    adminId,
+    encryptedName,
+    encryptedAction,
+    encryptedTarget,
+    encryptedDetails,
+    encryptedTimestamp,
+  ];
+
+  console.log("Executing query with encrypted values");
+
+  db.query(query, values, (err, result) => {
+    if (err) {
+      console.error("Error logging admin action:", err);
+      console.error("SQL Error:", err.sqlMessage);
+      console.error("Error Code:", err.code);
+      console.error("SQL State:", err.sqlState);
+    } else {
+      console.log("Admin action logged successfully");
+    }
+  });
+};
+
+// Update the get-admin-logs endpoint to decrypt the data
+app.get("/api/get-admin-logs", (req, res) => {
+  console.log("Fetching admin logs...");
+
+  const query = `
+    SELECT admin_id, admin_name, action, target_account, details, timestamp
+    FROM admin_logs 
+    ORDER BY timestamp DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching admin logs:", err);
+      return res.status(500).json({ message: "Error fetching admin logs" });
+    }
+
+    // Decrypt all encrypted data before sending
+    const decryptedResults = results
+      .map((log) => {
+        try {
+          return {
+            admin_id: log.admin_id,
+            admin_name: log.admin_name ? decrypt(log.admin_name) : "",
+            action: log.action ? decrypt(log.action) : "",
+            target_account: log.target_account
+              ? decrypt(log.target_account)
+              : "",
+            details: log.details ? decrypt(log.details) : "",
+            timestamp: log.timestamp ? decrypt(log.timestamp) : "",
+          };
+        } catch (error) {
+          console.error("Error decrypting log entry:", error);
+          return null;
+        }
+      })
+      .filter((log) => log !== null);
+
+    console.log("Admin logs fetched and decrypted");
+    res.json(decryptedResults);
+  });
+});
+
+// Create account endpoint
+app.post("/api/create-account", async (req, res) => {
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    phoneNumber,
+    adminId,
+    adminName,
+  } = req.body;
+  const id = generateRandomId();
+  const encEmail = encrypt(email);
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const query = `
+      INSERT INTO user_accounts (id, email, password, first_name, last_name, phone_number)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    db.query(
+      query,
+      [id, encEmail, hashedPassword, firstName, lastName, phoneNumber],
+      (err) => {
+        if (err) {
+          console.error("Error creating account:", err);
+          return res.status(500).json({ message: "Error creating account" });
+        }
+
+        // Log the admin action after successful account creation
+        logAdminAction(
+          adminId,
+          adminName,
+          "create",
+          email,
+          `Created new account for ${firstName} ${lastName}`
+        );
+
+        res.status(201).json({ message: "Account created successfully" });
+      }
+    );
+  } catch (err) {
+    console.error("Error hashing password:", err);
+    res.status(500).json({ message: "Error creating account" });
+  }
+});
+
+// Delete account endpoint
+app.delete("/api/delete-account/:id", (req, res) => {
+  const { id } = req.params;
+  const { adminId, adminName } = req.body;
+
+  // First get the account details for logging
+  const getAccountQuery =
+    "SELECT email, first_name, last_name FROM user_accounts WHERE id = ?";
+
+  db.query(getAccountQuery, [id], (err, results) => {
+    if (err) {
+      console.error("Error fetching account details:", err);
+      return res.status(500).json({ message: "Error deleting account" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    const account = results[0];
+    const deleteQuery = "DELETE FROM user_accounts WHERE id = ?";
+
+    db.query(deleteQuery, [id], (err) => {
+      if (err) {
+        console.error("Error deleting account:", err);
+        return res.status(500).json({ message: "Error deleting account" });
+      }
+
+      // Log the admin action after successful account deletion
+      logAdminAction(
+        adminId,
+        adminName,
+        "delete",
+        decrypt(account.email),
+        `Deleted account for ${account.first_name} ${account.last_name}`
+      );
+
+      res.json({ message: "Account deleted successfully" });
+    });
+  });
+});
+
+// Update account endpoint
+app.put("/api/update-account/:id", async (req, res) => {
+  const { id } = req.params;
+  const { email, firstName, lastName, phoneNumber, adminId, adminName } =
+    req.body;
+  const encEmail = email ? encrypt(email) : null;
+
+  let updateFields = [];
+  let updateValues = [];
+
+  if (email) {
+    updateFields.push("email = ?");
+    updateValues.push(encEmail);
+  }
+  if (firstName) {
+    updateFields.push("first_name = ?");
+    updateValues.push(firstName);
+  }
+  if (lastName) {
+    updateFields.push("last_name = ?");
+    updateValues.push(lastName);
+  }
+  if (phoneNumber) {
+    updateFields.push("phone_number = ?");
+    updateValues.push(phoneNumber);
+  }
+
+  if (updateFields.length === 0) {
+    return res.status(400).json({ message: "No fields to update" });
+  }
+
+  const query = `
+    UPDATE user_accounts 
+    SET ${updateFields.join(", ")}
+    WHERE id = ?
+  `;
+  updateValues.push(id);
+
+  db.query(query, updateValues, (err) => {
+    if (err) {
+      console.error("Error updating account:", err);
+      return res.status(500).json({ message: "Error updating account" });
+    }
+
+    // Log the admin action after successful account update
+    logAdminAction(
+      adminId,
+      adminName,
+      "update",
+      email || id,
+      `Updated account information for ${firstName || ""} ${lastName || ""}`
+    );
+
+    res.json({ message: "Account updated successfully" });
   });
 });
 
